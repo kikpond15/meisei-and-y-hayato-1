@@ -1,16 +1,82 @@
-<!DOCTYPE html>
 <html>
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 </head>
 
 <body>
-  Hello world
-  <script src="script.js"></script>
+  <a-scene mindar-image="imageTargetSrc: targets.mind;" color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets timeout="60000">
+      <!-- 表示させたい画像の名前をsrc=" ここ "に入れる-->
+      <!-- <img id="image" src="meisei.jpg" /> -->
+
+      <!-- 表示させたい動画の名前をsrc=" ここ "に入れる-->
+      <video id="video" src="videoplayback.mp4" loop muted playsinline 
+        webkit-playsinline preload="metadata" crossorigin="anonymous"></video>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-entity id="marker" mindar-image-target="targetIndex: 0">
+      <!-- 画像を表示させたい場合はここを編集 -->
+      <!-- <a-plane src="#image" position="0 0 0" height="0.552" width="1"></a-plane> -->
+      <!-- 動画を表示させたい場合はここを編集 -->
+      <a-video id="arVideo" src="#video" position="0 0 0" width="1.7" height="0.956" visible="false"></a-video>
+    </a-entity>
+
+  </a-scene>
+
+  <button id="enableSound" style="position:fixed;z-index:9999;top:10px;left:10px;">
+    🔊 音声を有効にする
+  </button>
+  <script>
+    const btn = document.getElementById('enableSound');
+    btn.addEventListener('click', async () => {
+      try {
+        // 一度ユーザー操作内で再生→停止→アンミュート
+        video.muted = true;
+        await video.play();
+        video.pause();
+        video.currentTime = 0;
+        video.muted = false;
+        btn.remove(); // 以後は targetFound で音あり再生OK
+      } catch (e) {
+        console.warn('enable sound failed', e);
+      }
+    }, {once: true});
+  </script>
+
+
+  <script>
+    const video = document.getElementById('video');
+    const arVideo = document.getElementById('arVideo');
+    const marker = document.getElementById('marker');
+
+    // 念のため初期停止
+    video.pause(); video.currentTime = 0;
+
+    marker.addEventListener('targetFound', async () => {
+      // 検出したら表示して自動再生（muted なので各ブラウザで通る）
+      arVideo.setAttribute('visible', true);
+      try {
+        // 先に1フレーム分ロードしてから再生すると安定
+        if (video.readyState < 2) video.load();
+        await video.play();
+      } catch (e) {console.warn('auto play failed', e);}
+    });
+
+    marker.addEventListener('targetLost', () => {
+      // ロストしたら停止＆非表示
+      video.pause();
+      // 戻したい場合は 0 に
+      // video.currentTime = 0;
+      arVideo.setAttribute('visible', false);
+    });
+  </script>
 </body>
 
 </html>
